@@ -1,0 +1,6 @@
+{
+    "program": "zvote_protocol_v15.aleo",
+    "version": "1.0.0",
+    "description": "zVote - Private, Bribe-Resistant DAO Governance Protocol",
+    "license": "MIT"
+}
