@@ -9,7 +9,8 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWallet, useCreateProposal } from '../lib/hooks';
+import { useWallet } from '../lib/WalletContext';
+import { useCreateProposal } from '../lib/hooks';
 
 interface CreateProposalProps {
     onSuccess: (proposalId: string) => void;
@@ -18,7 +19,7 @@ interface CreateProposalProps {
 
 export const CreateProposal: React.FC<CreateProposalProps> = ({ onSuccess, onCancel }) => {
     const { connected } = useWallet();
-    const { isCreating, txHash, explorerUrl, error, success, createProposal, reset, programId } = useCreateProposal();
+    const { isCreating, txHash, explorerUrl, error, success, createProposal, reset } = useCreateProposal();
 
     const [formData, setFormData] = useState({
         title: '',
@@ -228,7 +229,7 @@ export const CreateProposal: React.FC<CreateProposalProps> = ({ onSuccess, onCan
                             {/* Program ID info */}
                             <div className="p-3 bg-black/20 rounded-lg">
                                 <p className="text-xs text-slate-400">
-                                    Program: <span className="text-indigo-400 font-mono">{programId}</span>
+                                    Program: <span className="text-indigo-400 font-mono">zvote_protocol_v15.aleo</span>
                                 </p>
                             </div>
 

@@ -8,7 +8,7 @@ import { HowItWorks } from './components/HowItWorks';
 import { Comparison } from './components/Comparison';
 import { Trust } from './components/Trust';
 import { FinalCTA } from './components/FinalCTA';
-import { WalletConnect } from './components/WalletConnect';
+import { WalletButton } from './components/WalletButton';
 import { VotingCard } from './components/VotingCard';
 import { CreateProposal } from './components/CreateProposal';
 import { useWallet } from './lib/WalletContext';
@@ -30,10 +30,26 @@ const DEMO_PROPOSAL = {
   isActive: true
 };
 
+import { WalletTest } from './components/WalletTest';
+
 const App: React.FC = () => {
+  // HIDDEN TEST ROUTE
+  const [isTestMode, setIsTestMode] = useState(false);
+
+  React.useEffect(() => {
+    if (window.location.hash === '#test-wallet') {
+      setIsTestMode(true);
+    }
+  }, []);
+
   const [showDApp, setShowDApp] = useState(false);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
   const { connected } = useWallet();
+
+  // Test Mode View
+  if (isTestMode) {
+    return <WalletTest />;
+  }
 
   // Landing page view
   if (!showDApp) {
@@ -94,7 +110,7 @@ const App: React.FC = () => {
             </nav>
 
             {/* Wallet */}
-            <WalletConnect />
+            <WalletButton />
           </div>
         </div>
       </header>

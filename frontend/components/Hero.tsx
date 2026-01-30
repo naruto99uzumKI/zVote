@@ -66,7 +66,7 @@ export const Hero: React.FC<HeroProps> = ({ onLaunchApp }) => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
             </span>
             <span className="text-xs font-semibold tracking-wide text-slate-300 group-hover:text-indigo-300 transition-colors uppercase">
-              zVote Protocol Mainnet Live
+              zVote Protocol Testnet Live
             </span>
           </div>
         </motion.div>

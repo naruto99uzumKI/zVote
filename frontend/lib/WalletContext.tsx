@@ -1,127 +1,95 @@
-// ============================================================================
-// zVote Protocol - Wallet Context (ZeroAudit-Style Pattern)
-// ============================================================================
-//
-// React context for wallet state management using direct Leo Wallet API.
-// NO mock wallets. NO adapter packages. Direct window.leoWallet integration.
-//
-// ============================================================================
+/**
+ * zVote Wallet Context - ZeroAudit Pattern
+ * 
+ * Direct wallet connection without @demox-labs adapter.
+ * Eliminates library-level console errors and provides full control.
+ */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
-    WalletState,
-    connectWallet as aleoConnect,
-    disconnectWallet as aleoDisconnect,
+    connectWallet,
+    disconnectWallet,
     getStoredWallet,
     isWalletAvailable,
-    LEO_WALLET_URL,
-} from './aleo';
+    type WalletState,
+} from './wallet';
 
-interface WalletContextType {
-    // Wallet state
-    connected: boolean;
-    address: string | null;
-    walletName: string | null;
-    connecting: boolean;
-    error: string | null;
-
-    // Wallet detection
-    walletInstalled: boolean;
-    installUrl: string;
-
-    // Actions
+interface WalletContextType extends WalletState {
     connect: () => Promise<void>;
-    disconnect: () => Promise<void>;
-    clearError: () => void;
+    disconnect: () => void;
+    connecting: boolean;
+    formatAddress: (address: string) => string;
+    balance: number | null;
+    network: string;
 }
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
+const WalletContext = createContext<WalletContextType | null>(null);
 
 interface WalletProviderProps {
     children: ReactNode;
 }
 
+/**
+ * WalletProvider - Custom implementation
+ * 
+ * Manages wallet state using direct Leo Wallet connection.
+ */
 export function WalletProvider({ children }: WalletProviderProps) {
-    const [state, setState] = useState<WalletState>({
-        connected: false,
-        address: null,
-        walletName: null,
-    });
+    const [wallet, setWallet] = useState<WalletState>(getStoredWallet());
     const [connecting, setConnecting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [walletInstalled, setWalletInstalled] = useState(false);
 
-    // Check for stored wallet on mount and detect wallet availability
+    // Auto-reconnect on mount if session exists
     useEffect(() => {
-        // Delay check to allow wallet extension to inject
-        const checkWallet = () => {
-            const installed = isWalletAvailable();
-            setWalletInstalled(installed);
-            console.log('[zVote] Wallet installed:', installed);
-
-            // Restore stored wallet state
-            const stored = getStoredWallet();
-            if (stored.connected && stored.address) {
-                console.log('[zVote] Restoring stored wallet:', stored.address);
-                setState(stored);
-            }
-        };
-
-        const timeout = setTimeout(checkWallet, 300);
-        return () => clearTimeout(timeout);
+        const stored = getStoredWallet();
+        if (stored.connected && stored.address) {
+            console.log('[zVote] Restoring wallet session:', stored.address);
+            setWallet(stored);
+        }
     }, []);
 
-    // Connect wallet
-    const connect = useCallback(async () => {
-        setError(null);
+    // Handle wallet connection
+    const connect = async () => {
+        if (connecting) return;
+
         setConnecting(true);
-
         try {
-            const walletState = await aleoConnect();
-            setState(walletState);
-            console.log('[zVote] Wallet connected:', walletState.address);
-        } catch (err: any) {
-            console.error('[zVote] Connection error:', err);
-            const errorMessage = err?.message || 'Failed to connect wallet';
-            setError(errorMessage);
-
-            // If no wallet found, update installed state
-            if (errorMessage.includes('No Aleo wallet found')) {
-                setWalletInstalled(false);
-            }
+            const result = await connectWallet();
+            setWallet(result);
+            console.log('[zVote] Wallet connected successfully');
+        } catch (error: any) {
+            console.error('[zVote] Connection failed:', error);
+            // Reset state on error
+            setWallet({ connected: false, address: null, walletName: null, network: null });
+            throw error;
         } finally {
             setConnecting(false);
         }
-    }, []);
+    };
 
-    // Disconnect wallet
-    const disconnect = useCallback(async () => {
-        try {
-            const newState = await aleoDisconnect();
-            setState(newState);
-            setError(null);
-            console.log('[zVote] Wallet disconnected');
-        } catch (err: any) {
-            console.error('[zVote] Disconnect error:', err);
-        }
-    }, []);
+    // Handle wallet disconnection
+    const disconnect = () => {
+        const result = disconnectWallet();
+        setWallet(result);
+        console.log('[zVote] Wallet disconnected');
+    };
 
-    // Clear error
-    const clearError = useCallback(() => {
-        setError(null);
-    }, []);
+    // Format address for display
+    const formatAddress = (address: string): string => {
+        if (!address) return '';
+        if (address.length <= 16) return address;
+        return `${address.slice(0, 8)}...${address.slice(-6)}`;
+    };
 
     const value: WalletContextType = {
-        connected: state.connected,
-        address: state.address,
-        walletName: state.walletName,
-        connecting,
-        error,
-        walletInstalled,
-        installUrl: LEO_WALLET_URL,
+        ...wallet,
         connect,
         disconnect,
-        clearError,
+        connecting,
+        formatAddress,
+        balance: null, // Will be implemented later when fetching from network
+        network: wallet.network || 'testnet', // Use actual connected network
     };
 
     return (
@@ -131,10 +99,20 @@ export function WalletProvider({ children }: WalletProviderProps) {
     );
 }
 
+/**
+ * useWallet hook
+ * 
+ * Access wallet state and functions from any component.
+ */
 export function useWallet(): WalletContextType {
     const context = useContext(WalletContext);
+
     if (!context) {
-        throw new Error('useWallet must be used within a WalletProvider');
+        throw new Error('useWallet must be used within WalletProvider');
     }
+
     return context;
 }
+
+// Export wallet utilities
+export { isWalletAvailable };

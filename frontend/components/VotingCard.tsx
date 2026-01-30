@@ -9,7 +9,8 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWallet, useVoting } from '../lib/hooks';
+import { useWallet } from '../lib/WalletContext';
+import { useVoting } from '../lib/hooks';
 
 interface VotingCardProps {
     proposalId: string;

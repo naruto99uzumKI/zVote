@@ -1,42 +1,43 @@
 // ============================================================================
-// zVote Protocol - Custom Hooks (ZeroAudit-Style Pattern)
-// ============================================================================
-//
-// Hooks for voting and proposal creation using direct Leo Wallet API.
-// NO mock transactions. NO simulated responses. REAL wallet signing only.
-//
+// zVote Protocol - React Hooks
 // ============================================================================
 
 import { useState, useCallback } from 'react';
-import {
-    castVote as aleoCastVote,
-    mintVotingPower,
-    getVotingPowerRecord,
-    createProposal as aleoCreateProposal,
-    getExplorerTransactionUrl,
-    TransactionResult,
-    testWalletTransaction, // Import for simulation
-    PROGRAM_ID,
-} from './aleo';
 import { useWallet } from './WalletContext';
+import {
+    mintVotingPower as aleoMintVotingPower,
+    castVote as aleoCastVote,
+    createProposal as aleoCreateProposal,
+    getVotingPowerRecord,
+    getExplorerTransactionUrl,
+} from './aleo';
+
+export interface TransactionResult {
+    success: boolean;
+    transactionId?: string;
+    error?: string;
+}
 
 // ============================================================================
-// Voting Hook
+// Voting Hook State
 // ============================================================================
 
-// Two-step voting: Mint then Vote
-export interface VoteState {
+interface VoteState {
     isVoting: boolean;
-    isMinting: boolean; // New state for minting step
+    isMinting: boolean;
     txHash: string | null;
     explorerUrl: string | null;
     error: string | null;
     success: boolean;
-    message?: string; // Status message
+    message?: string;
 }
 
+// ============================================================================
+// Voting Hook - Handles 2-step voting process
+// ============================================================================
+
 export function useVoting() {
-    const { connected, address } = useWallet();
+    const { connected, address } = useWallet();  // Network read from wallet automatically
     const [state, setState] = useState<VoteState>({
         isVoting: false,
         isMinting: false,
@@ -93,7 +94,8 @@ export function useVoting() {
                 }));
 
                 // REAL: Call mintVotingPower
-                const mintResult = await mintVotingPower(proposalId, weight);
+                // Network is read automatically from wallet inside executeTransaction
+                const mintResult = await aleoMintVotingPower(proposalId, weight);
 
                 if (!mintResult.success || !mintResult.transactionId) {
                     throw new Error(mintResult.error || 'Minting failed. You must mint power to vote.');
@@ -124,7 +126,8 @@ export function useVoting() {
             }));
 
             // REAL: Call aleoCastVote
-            const result = await aleoCastVote(proposalId, voteOption, weight, record);
+            // Network is read automatically from wallet inside executeTransaction
+            const result = await aleoCastVote(record!, voteOption);
 
             if (result.success && result.transactionId) {
                 const explorerUrl = getExplorerTransactionUrl(result.transactionId);
@@ -156,7 +159,7 @@ export function useVoting() {
             });
             return { success: false, error: err.message };
         }
-    }, [connected, address]);
+    }, [connected, address]);  // Network read from wallet, not passed
 
     const reset = useCallback(() => {
         setState({
@@ -189,7 +192,7 @@ interface CreateProposalState {
 }
 
 export function useCreateProposal() {
-    const { connected, address } = useWallet();
+    const { connected, address } = useWallet();  // Network read from wallet automatically
     const [state, setState] = useState<CreateProposalState>({
         isCreating: false,
         txHash: null,
@@ -231,8 +234,8 @@ export function useCreateProposal() {
             const proposalId = `${randomId}`;
 
             // Execute REAL create proposal transaction - wallet popup will appear
-            // Signature: (proposalId, startBlock, endBlock, optionsCount)
-            const result = await aleoCreateProposal(proposalId, startBlock, endBlock, optionsCount);
+            // Network is read automatically from wallet inside executeTransaction
+            const result = await aleoCreateProposal(proposalId, startBlock, endBlock, optionsCount, address || '');
 
             if (result.success && result.transactionId) {
                 const explorerUrl = getExplorerTransactionUrl(result.transactionId);
@@ -248,19 +251,12 @@ export function useCreateProposal() {
                 console.log('[zVote] Proposal created! TX:', result.transactionId);
                 return result;
             } else {
-                setState({
-                    isCreating: false,
-                    txHash: null,
-                    explorerUrl: null,
-                    error: result.error || 'Proposal creation failed',
-                    success: false,
-                });
-                return result;
+                throw new Error(result.error || 'Proposal creation failed');
             }
         } catch (err: any) {
-            console.error('[zVote] Create proposal error:', err);
-            const error = err?.message || 'Failed to create proposal';
+            console.error('[zVote] Proposal creation error:', err);
 
+            const error = err.message || 'Failed to create proposal';
             setState({
                 isCreating: false,
                 txHash: null,
@@ -271,7 +267,7 @@ export function useCreateProposal() {
 
             return { success: false, error };
         }
-    }, [connected, address]);
+    }, [connected, address]);  // Network read from wallet, not passed
 
     const reset = useCallback(() => {
         setState({
@@ -287,9 +283,5 @@ export function useCreateProposal() {
         ...state,
         createProposal,
         reset,
-        programId: PROGRAM_ID,
     };
 }
-
-// Re-export useWallet for convenience
-export { useWallet } from './WalletContext';

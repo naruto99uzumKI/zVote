@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from './ui/Button';
 import { ShieldCheck } from 'lucide-react';
+import { WalletButton } from './WalletButton';
 
 interface NavbarProps {
   onLaunchApp?: () => void;
@@ -24,8 +24,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onLaunchApp }) => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
-          ? 'bg-[#020617]/70 backdrop-blur-xl border-b border-white/[0.03] py-4'
-          : 'bg-transparent py-8'
+        ? 'bg-[#020617]/70 backdrop-blur-xl border-b border-white/[0.03] py-4'
+        : 'bg-transparent py-8'
         }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -46,13 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onLaunchApp }) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button
-            variant="primary"
-            className="!py-2.5 !px-6 !text-xs !rounded-lg !bg-electric-gradient !shadow-none hover:!shadow-glow-indigo"
-            onClick={onLaunchApp}
-          >
-            Launch App
-          </Button>
+          <WalletButton />
         </div>
       </div>
     </motion.nav>
